@@ -10,92 +10,88 @@ def load_seen():
     try:
         with open(SEEN_FILE,"r") as f: return json.load(f)
     except: return {}
-def save_seen(d):
-    with open(SEEN_FILE,"w") as f: json.dump(d,f)
 
-def deals_kategori(cat_id):
+def save_seen(d):
+    with open(SEEN_FILE,"w") as f: json.dump(d,f, indent=2)
+
+def arama(kelime):
     url = "https://api.rainforestapi.com/request"
     params = {
         "api_key": RF_KEY,
-        "type": "deals",
+        "type": "search",
         "amazon_domain": "amazon.com.tr",
-        "category_id": cat_id,
+        "search_term": kelime,
         "language": "tr_TR"
     }
-    for deneme in range(2):
-        try:
-            print(f"{cat_id} çekiliyor deneme {deneme+1}")
-            r = requests.get(url, params=params, timeout=90)
-            data = r.json()
-            urunler = data.get("deals_results", []) or data.get("deal_products", []) or []
-            print(f"{cat_id} -> {len(urunler)} ürün")
-            return urunler
-        except Exception as e:
-            print(f"{cat_id} hata: {e}")
-            time.sleep(3)
-    return []
+    try:
+        r = requests.get(url, params=params, timeout=50)
+        return r.json().get("search_results", [])
+    except Exception as e:
+        print(f"{kelime} hata {e}")
+        return []
 
 async def main():
     bot = Bot(token=BOT_TOKEN)
-    seen = load_seen()
+    seen = load_seen() # {asin: {"max_price": 1000, "title": "", "link": ""}}
 
-    kategoriler = {
-        "electronics": "Elektronik",
-        "apparel": "Giyim",
-        "grocery": "Gida",
-        "home": "Ev Yasam",
-        "toys": "Oyuncak"
-    }
+    kelimeler = ["kulaklik", "telefon kilifi", "ayakkabi", "tshirt", "zeytinyagi", "kahve", "mutfak"]
+    yeni_firsatlar = []
 
-    tum_urunler = []
-    for cat_id, isim in kategoriler.items():
-        urunler = deals_kategori(cat_id)
-        for p in urunler:
-            oran = p.get("deal_percent_off") or p.get("savings_percent") or p.get("percent_off") or 0
-            try: oran = int(float(str(oran).replace("%","")))
-            except: oran = 0
-            if oran < 20: continue
-            
-            asin = p.get("asin","")
+    for k in kelimeler:
+        urunler = arama(k)
+        print(f"{k}: {len(urunler)}")
+        for p in urunler[:20]:
+            asin = p.get("asin")
             if not asin: continue
-            if seen.get(asin) == oran: continue
+            fiyat = p.get("price",{}).get("value",0)
+            if not fiyat: continue
 
-            tum_urunler.append({
-                "asin": asin,
-                "kat": isim,
-                "isim": p.get("title","")[:65],
-                "oran": oran,
-                "link": p.get("link",""),
-                "fiyat": p.get("deal_price",{}).get("raw","") or p.get("price",{}).get("raw","")
-            })
+            title = p.get("title","")[:70]
+            link = p.get("link","")
+
+            if asin not in seen:
+                # ilk kez görüyoruz, kaydet
+                seen[asin] = {"max_price": fiyat, "title": title, "link": link}
+            else:
+                max_fiyat = seen[asin].get("max_price", fiyat)
+                # fiyat daha da yükseldiyse max'ı güncelle
+                if fiyat > max_fiyat:
+                    seen[asin]["max_price"] = fiyat
+                else:
+                    # düşüş var mı?
+                    dusus = int((max_fiyat - fiyat) / max_fiyat * 100)
+                    if dusus >= 20:
+                        # daha önce bu düşüşü attık mı?
+                        if seen[asin].get("last_sent_drop")!= dusus:
+                            yeni_firsatlar.append({
+                                "asin": asin,
+                                "isim": title,
+                                "oran": dusus,
+                                "eski": max_fiyat,
+                                "yeni": fiyat,
+                                "link": link
+                            })
+                            seen[asin]["last_sent_drop"] = dusus
         time.sleep(2)
 
-    tum_urunler = sorted(tum_urunler, key=lambda x: x["oran"], reverse=True)[:30]
+    yeni_firsatlar = sorted(yeni_firsatlar, key=lambda x: x["oran"], reverse=True)[:30]
 
-    if not tum_urunler:
-        # Debug: en azından kaç ürün çektiğimizi at
-        await bot.send_message(chat_id=CHAT_ID, text="Bugün hiç yeni %20+ yok. Hafızayı sıfırlamak için seen.json dosyasını sil.")
-        return
+    if yeni_firsatlar:
+        msg = f"🔥 FİYAT DÜŞÜŞÜ %20+ {len(yeni_firsatlar)} ÜRÜN\n\n"
+        for u in yeni_firsatlar:
+            msg += f"%{u['oran']} {u['isim']}\n{u['eski']}TL -> {u['yeni']}TL\n{u['link']}\n\n"
+            if len(msg) > 3500:
+                await bot.send_message(chat_id=CHAT_ID, text=msg)
+                msg = ""
+                await asyncio.sleep(1)
+        if msg:
+            await bot.send_message(chat_id=CHAT_ID, text=msg)
+    else:
+        print("Yeni %20 düşüş yok, sadece fiyatlar kaydedildi")
+        # İlk kurulumda bilgi ver
+        if len(seen) < 30:
+            await bot.send_message(chat_id=CHAT_ID, text=f"Bot öğreniyor... {len(seen)} ürün kaydedildi. Fiyatlar düşmeye başlayınca %20+ olarak atacağım.")
 
-    # 30 ürünü 10'arlı 3 mesaja böl
-    header = f"🔥 TÜM KATEGORİLER EN İYİ {len(tum_urunler)} FIRSAT %20+\n\n"
-    cur = header
-    parcalar = []
-    for u in tum_urunler:
-        satir = f"[{u['kat']}] %{u['oran']} {u['isim']} {u['fiyat']}\n{u['link']}\n\n"
-        if len(cur)+len(satir) > 3800:
-            parcalar.append(cur)
-            cur = satir
-        else:
-            cur += satir
-    parcalar.append(cur)
-
-    for pc in parcalar:
-        await bot.send_message(chat_id=CHAT_ID, text=pc)
-        await asyncio.sleep(1)
-
-    for u in tum_urunler:
-        seen[u["asin"]] = u["oran"]
     save_seen(seen)
 
 asyncio.run(main())

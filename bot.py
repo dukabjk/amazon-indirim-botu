@@ -9,79 +9,51 @@ HEADERS = {
     "Accept-Language": "tr-TR,tr;q=0.9",
 }
 
-def amazon_cek(amazon_url):
-    html = ""
-    try:
-        url = f"https://api.allorigins.win/raw?url={urllib.parse.quote(amazon_url)}"
-        r = requests.get(url, headers=HEADERS, timeout=25)
-        if r.status_code == 200 and len(r.text) > 5000:
-            html = r.text
-    except:
-        pass
-    if len(html) < 5000:
+def amazon_cek(url):
+    for proxy in [
+        f"https://api.allorigins.win/raw?url={urllib.parse.quote(url)}",
+        f"https://corsproxy.io/?{urllib.parse.quote(url)}",
+        url
+    ]:
         try:
-            url2 = f"https://corsproxy.io/?{urllib.parse.quote(amazon_url)}"
-            r2 = requests.get(url2, headers=HEADERS, timeout=25)
-            if r2.status_code == 200 and len(r2.text) > 5000:
-                html = r2.text
-        except:
-            pass
-    if len(html) < 5000:
-        try:
-            r3 = requests.get(amazon_url, headers=HEADERS, timeout=15)
-            html = r3.text
-        except:
-            pass
-    return html
-
-def parse_et(html):
-    urunler = []
-    if len(html) < 2000:
-        return urunler
-    bloklar = html.split('data-component-type="s-search-result"')[1:]
-    for blok in bloklar[:30]: # 30 ürüne bak
-        m_indirim = re.search(r'%(\d+)', blok)
-        if not m_indirim:
-            continue
-        indirim = int(m_indirim.group(1))
-        if indirim < 20: # <--- BURASI %20 OLDU
-            continue
-        m_link = re.search(r'href="([^"]*?/dp/([A-Z0-9]{10})[^"]*)"', blok)
-        m_isim = re.search(r'<h2.*?<span>(.*?)</span>', blok, re.DOTALL)
-        if m_link:
-            link = m_link.group(1)
-            if not link.startswith("http"):
-                link = "https://www.amazon.com.tr" + link
-            link = link.split("?")[0]
-            isim = m_isim.group(1).strip() if m_isim else "Fırsat Ürünü"
-            isim = re.sub(r'<.*?>', '', isim)[:90]
-            urunler.append({"isim": isim, "indirim": indirim, "link": link})
-    return sorted(urunler, key=lambda x: x['indirim'], reverse=True)[:5]
+            r = requests.get(proxy, headers=HEADERS, timeout=25)
+            if len(r.text) > 5000:
+                print(f"OK {len(r.text)} {proxy[:40]}")
+                return r.text
+        except Exception as e:
+            print(f"Fail {e}")
+    return ""
 
 async def main():
     bot = Bot(token=TOKEN)
-    # BURASI %20 OLDU
-    KATS = {
-        "💻 Teknoloji": "https://www.amazon.com.tr/s?i=electronics&rh=p_n_pct-off-with-tax%3A-20&s=review-rank",
-        "👕 Giyim": "https://www.amazon.com.tr/s?i=fashion&rh=p_n_pct-off-with-tax%3A-20&s=review-rank",
-        "🛒 Market": "https://www.amazon.com.tr/s?i=groceries&rh=p_n_pct-off-with-tax%3A-20&s=review-rank",
+    # Filtresiz + %20 filtreli ikisini deniyoruz
+    test_urls = {
+        "💻 Teknoloji Düz": "https://www.amazon.com.tr/s?i=electronics&s=price-desc-rank",
+        "💻 Teknoloji %20": "https://www.amazon.com.tr/s?k=kulaklik&i=electronics&rh=p_n_pct-off-with-tax%3A-20",
     }
-    mesaj = "🔥 AMAZON TR %20+ İNDİRİMLER (Canlı Tarama)\n"
-    var_mi = False
-    for kat, url in KATS.items():
-        html = amazon_cek(url)
-        urunler = parse_et(html)
-        print(f"{kat} -> {len(urunler)} ürün bulundu")
-        if urunler:
-            var_mi = True
-            mesaj += f"\n{kat}:\n"
-            for u in urunler:
-                mesaj += f"%{u['indirim']} {u['isim']}\n{u['link']}\n\n"
 
-    if var_mi:
-        for i in range(0, len(mesaj), 3500):
-            await bot.send_message(chat_id=CHAT_ID, text=mesaj[i:i+3500])
-    else:
-        await bot.send_message(chat_id=CHAT_ID, text="Bot Amazon'a bağlandı ama %20+ da bile şu an ürün yok. Bir sonraki taramada tekrar bakacak.")
+    full_msg = "🔍 DEBUG RAPORU\n"
+
+    for isim, url in test_urls.items():
+        html = amazon_cek(url)
+        blok_sayisi = html.count('data-component-type="s-search-result"')
+        full_msg += f"\n{isim}: {len(html)} karakter, {blok_sayisi} ürün bloğu\n"
+
+        # İsimleri ve rozetleri ne görüyor?
+        isimler = re.findall(r'<h2.*?<span>(.*?)</span>', html, re.DOTALL)[:3]
+        rozetler = re.findall(r'a-badge-text[^>]*>([^<]*%[^<]*)<', html)[:5]
+
+        full_msg += f"Örnek isim: {isimler[0][:60] if isimler else 'BULAMADI'}\n"
+        full_msg += f"Rozetler: {rozetler if rozetler else 'ROZET YOK'}\n"
+
+        # Rozet yoksa bile ilk 3 ürünü link olarak at
+        if blok_sayisi > 0:
+            links = re.findall(r'href="([^"]*?/dp/[A-Z0-9]{10}[^"]*)"', html)[:3]
+            for l in links:
+                clean = "https://www.amazon.com.tr" + l.split("?")[0] if not l.startswith("http") else l.split("?")[0]
+                full_msg += f"{clean}\n"
+
+    print(full_msg)
+    await bot.send_message(chat_id=CHAT_ID, text=full_msg[:3800])
 
 asyncio.run(main())

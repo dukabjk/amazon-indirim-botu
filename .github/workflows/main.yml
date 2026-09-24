@@ -3,6 +3,8 @@ on:
   schedule:
     - cron: '*/30 * * * *'
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   run:
     runs-on: ubuntu-latest
@@ -17,10 +19,8 @@ jobs:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
           RAINFOREST_KEY: ${{ secrets.RAINFOREST_KEY }}
-      - name: Hafizayi kaydet
-        run: |
-          git config --global user.name "bot"
-          git config --global user.email "bot@bot.com"
-          git add seen.json || echo "dosya yok"
-          git diff --staged --quiet || git commit -m "hafiza guncelle"
-          git push || echo "push yok"
+      - run: |
+          git config user.name "bot"
+          git config user.email "bot@bot.com"
+          git add seen.json -f
+          git diff --staged --quiet || (git commit -m "fiyat guncelle" && git push)

@@ -5,85 +5,80 @@ TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    "Accept-Language": "tr-TR,tr;q=0.9,en;q=0.8",
+    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+    "Accept-Language": "tr-TR,tr;q=0.9",
+    "Accept": "text/html,application/xhtml+xml"
 }
 
-# 3 kategori, her biri Amazon'un fırsat sayfası
+# DOĞRU YÖNTEM: Amazon'un kendi %25 indirim filtresi
+# p_n_pct-off-with-tax:25- = %25 ve üzeri indirim demek
 KATEGORILER = {
-    "💻 Teknoloji": "https://www.amazon.com.tr/gp/goldbox?gb_f_deals1_sortOrder=BEST_DEAL&pf_rd_p=0f52a9b3-8c2b-4761-b8a9-cf9a8d45597d&pf_rd_s=slot-3&rh=i%3Aelectronics&ie=UTF8&ref_=sv_elec_6",
-    "👕 Giyim": "https://www.amazon.com.tr/gp/goldbox?gb_f_deals1_sortOrder=BEST_DEAL&rh=i%3Aapparel&ie=UTF8&ref_=sv_app_6",
-    "🛒 Market": "https://www.amazon.com.tr/gp/goldbox?gb_f_deals1_sortOrder=BEST_DEAL&rh=i%3Agrocery&ie=UTF8"
+    "💻 Teknoloji": "https://www.amazon.com.tr/s?i=electronics&rh=p_n_pct-off-with-tax%3A-25&s=review-rank&fs=true",
+    "👕 Giyim": "https://www.amazon.com.tr/s?i=fashion&rh=p_n_pct-off-with-tax%3A-25&s=review-rank&fs=true",
+    "🛒 Market": "https://www.amazon.com.tr/s?i=groceries&rh=p_n_pct-off-with-tax%3A-25&s=review-rank&fs=true"
 }
 
-def firsatlari_al(url):
+def tara(url):
     try:
-        r = requests.get(url, headers=HEADERS, timeout=15)
+        r = requests.get(url, headers=HEADERS, timeout=20)
+        print(f"URL: {url}")
+        print(f"Status: {r.status_code} | Boyut: {len(r.text)} karakter")
+
+        # Amazon engelledi mi kontrol et
+        if "api-services-support" in r.text or len(r.text) < 5000:
+            print("AMAZON ENGELLEDİ - Captcha sayfası geldi")
+            return None, "engellendi"
+
         html = r.text
+        # Ürün kartlarını bul
+        items = re.findall(r'data-component-type="s-search-result".*?href="/([^"]+/dp/[^"]+)".*?<span class="a-size-base-plus[^>]*>([^<]+)</span>.*?%(\d+)', html, re.DOTALL)
 
-        urunler = []
-        # Amazon indirim rozetleri: %25, %30 gibi
-        # Desen: %25, %32, %40 İndirim veya savingPercentage
-        pattern = r'data-testid="product-card".*?%(\d+).*?</div>'
+        if not items:
+            # Alternatif pattern
+            items = re.findall(r'/dp/([A-Z0-9]{10}).*?class="a-badge-text">%(\d+)', html)
 
-        # Daha basit ve sağlam yöntem: tüm kartları regex ile tara
-        bloklar = re.findall(r'<div class="a-section a-spacing-medium.*?">(.*?)</div>\s*</div>\s*</div>\s*</div>', html, re.DOTALL)[:40]
-        if not bloklar:
-            bloklar = html.split('a-spacing-medium')[1:40]
+        bulunanlar = []
+        for item in items[:10]:
+            if len(item) == 3:
+                link_part, isim, indirim = item
+                link = f"https://www.amazon.com.tr/{link_part.split('?')[0]}"
+                if int(indirim) >= 25:
+                    bulunanlar.append(f"%{indirim} - {isim[:70]}\n{link}")
+            elif len(item) == 2:
+                asin, indirim = item
+                if int(indirim) >= 25:
+                    bulunanlar.append(f"%{indirim} - https://www.amazon.com.tr/dp/{asin}")
 
-        for blok in bloklar:
-            indirim_match = re.search(r'%(\d+)', blok)
-            if not indirim_match:
-                continue
-            indirim = int(indirim_match.group(1))
-            if indirim < 25:
-                continue
-
-            # Link ve isim al
-            link_match = re.search(r'href="(/dp/[A-Z0-9]+|/.*?/dp/[A-Z0-9]+)"', blok)
-            isim_match = re.search(r'title="(.*?)"|class="a-size-base[^"]*">([^<]{10,100})<', blok)
-
-            if link_match:
-                link = "https://www.amazon.com.tr" + link_match.group(1).split('?')[0]
-                # ASIN temizle
-                asin_match = re.search(r'/dp/([A-Z0-9]+)', link)
-                asin = asin_match.group(1) if asin_match else "link"
-
-                isim = "Amazon Fırsat Ürünü"
-                if isim_match:
-                    isim = (isim_match.group(1) or isim_match.group(2) or isim).strip()[:80]
-
-                urunler.append({"isim": isim, "indirim": indirim, "link": link})
-
-        # İndirime göre sırala, en yüksekten
-        urunler = sorted(urunler, key=lambda x: x['indirim'], reverse=True)
-        return urunler[:5] # Kategori başı en iyi 5
+        return bulunanlar, f"{len(html)} karakter geldi"
 
     except Exception as e:
-        print(f"Hata {url}: {e}")
-        return []
+        print(f"Hata: {e}")
+        return [], str(e)
 
 async def main():
     bot = Bot(token=TOKEN)
-    toplam_mesaj = ""
+    log_mesaji = "🔍 Tarama Raporu:\n"
+    tum_firsatlar = ""
 
-    for kat_isim, kat_url in KATEGORILER.items():
-        print(f"Taranıyor: {kat_isim}")
-        urunler = firsatlari_al(kat_url)
-        if not urunler:
+    for isim, url in KATEGORILER.items():
+        urunler, durum = tara(url)
+        log_mesaji += f"\n{isim}: {durum}\n"
+
+        if urunler is None:
+            tum_firsatlar += f"\n{isim}: Amazon şu an botu engelliyor, 1 saat sonra tekrar deneyecek.\n"
             continue
 
-        toplam_mesaj += f"\n{kat_isim} - %25+ İndirimler:\n"
-        for u in urunler:
-            toplam_mesaj += f"🔥 %{u['indirim']} - {u['isim']}\n{u['link']}\n\n"
+        if urunler:
+            tum_firsatlar += f"\n{isim} (%25+):\n" + "\n\n".join(urunler[:3]) + "\n"
+            log_mesaji += f"-> {len(urunler)} ürün bulundu\n"
+        else:
+            log_mesaji += f"-> Ürün bulunamadı (filtre çalışıyor ama stok yok)\n"
 
-    if toplam_mesaj:
-        # Telegram 4096 karakter limiti için parçala
-        for i in range(0, len(toplam_mesaj), 3500):
-            await bot.send_message(chat_id=CHAT_ID, text=toplam_mesaj[i:i+3500])
-        print("Mesajlar gönderildi")
+    print(log_mesaji)
+    # Telegram'a ne yaptığını at
+    if tum_firsatlar:
+        await bot.send_message(chat_id=CHAT_ID, text=tum_firsatlar[:3500])
     else:
-        print("Bu sefer %25+ fırsat bulunamadı")
-        await bot.send_message(chat_id=CHAT_ID, text="🤖 Kontrol ettim, şu an %25+ fırsat yok. 30 dk sonra tekrar bakacağım.")
+        await bot.send_message(chat_id=CHAT_ID, text=log_mesaji + "\n\nAmazon şu an boş sayfa döndü. Eğer sürekli böyle olursa Keepa API'ye geçeceğiz, o %100 çalışır.")
 
 asyncio.run(main())

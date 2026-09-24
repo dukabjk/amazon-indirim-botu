@@ -1,18 +1,6 @@
-pythonimport os, requests, asyncio
-from telegram import Bot
-
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-CHAT_ID = os.getenv("CHAT_ID")  # Artık sayı olacak
-
-bot = Bot(token=BOT_TOKEN)
-
-async def main():
-    try:
-        await bot.send_message(chat_id=CHAT_ID, text="✅ Bot düzeldi! Şimdi her 30 dakikada Amazon'da %25+ indirim arayacağım.\n\nTest başarılı.")
-        print("Mesaj gönderildi")
-    except Exception as e:
-        print(f"HATA: {e}")
-        # Hatanın ne olduğunu logda görelim
-        raise e
-
-asyncio.run(main())
+import os
+import asyncio
+from telegram import BotTOKEN = os.getenv("BOT_TOKEN")
+CHAT = os.getenv("CHAT_ID")print(f"TOKEN var mi: {bool(TOKEN)}")
+print(f"CHAT_ID: {CHAT}")bot = Bot(token=TOKEN)async def main():
+    await bot.send_message(chat_id=CHAT, text="✅ Sonunda oldu! Bot bağlandı.")asyncio.run(main())

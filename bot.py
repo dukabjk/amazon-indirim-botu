@@ -5,7 +5,8 @@ from bs4 import BeautifulSoup
 from telegram import Bot
 
 # ===== SADECE BURAYI DOLDUR =====
-BOT_TOKEN = "8642343549:AAEjXLh8Uh4DqFJQCXCULuy3tRBDFpVts1M"
+import os
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = "dukabjk"
 # =================================
 

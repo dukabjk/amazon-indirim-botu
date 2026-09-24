@@ -1,63 +1,70 @@
-import os, json, requests, asyncio, time
-from telegram import Bot
+import requests, json, os, time
+from datetime import datetime
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+RAINFOREST_KEY = os.getenv("RAINFOREST_KEY")
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
-RF_KEY = os.getenv("RAINFOREST_KEY")
-SEEN_FILE = "seen.json"
 
-def load_seen():
-    try:
-        with open(SEEN_FILE,"r") as f: return json.load(f)
-    except: return {}
-def save_seen(d):
-    with open(SEEN_FILE,"w") as f: json.dump(d,f, indent=2)
+kelimeler = ["kulaklik","ayakkabi","tshirt","zeytinyagi","kahve","mutfak","telefon kilifi"]
 
-def arama(kelime):
-    url = "https://api.rainforestapi.com/request"
-    params = {"api_key": RF_KEY,"type": "search","amazon_domain": "amazon.com.tr","search_term": kelime,"language": "tr_TR"}
-    try:
-        r = requests.get(url, params=params, timeout=50)
-        return r.json().get("search_results", [])
-    except: return []
+now = datetime.now()
+idx = ((now.hour * 60 + now.minute) // 15) % len(kelimeler)
+secilen_kelime = kelimeler[idx]
+print(f"-> Taranan kelime: {secilen_kelime}")
 
-async def main():
-    bot = Bot(token=BOT_TOKEN)
-    seen = load_seen()
-    kelimeler = ["kulaklik","ayakkabi","tshirt","zeytinyagi","kahve","mutfak","telefon kilifi"]
-    yeni = []
+try:
+    with open("seen.json","r", encoding="utf-8") as f:
+        seen = json.load(f)
+except:
+    seen = {}
 
-    for k in kelimeler:
-        for p in arama(k)[:20]:
-            asin = p.get("asin")
-            fiyat = p.get("price",{}).get("value",0)
-            if not asin or not fiyat: continue
-            title = p.get("title","")[:70]
-            link = p.get("link","")
-            if asin not in seen:
-                seen[asin] = {"max_price": fiyat, "title": title, "link": link}
-            else:
-                max_f = seen[asin].get("max_price", fiyat)
-                if fiyat > max_f:
-                    seen[asin]["max_price"] = fiyat
-                else:
-                    dusus = int((max_f - fiyat) / max_f * 100)
-                    if dusus >= 20 and seen[asin].get("last_sent")!= dusus:
-                        yeni.append({"isim": title, "oran": dusus, "eski": max_f, "yeni": fiyat, "link": link})
-                        seen[asin]["last_sent"] = dusus
-        time.sleep(1)
+if len(seen) > 800:
+    seen = dict(list(seen.items())[-600:])
+    print(f"Budandi: {len(seen)}")
 
-    if yeni:
-        yeni = sorted(yeni, key=lambda x: x["oran"], reverse=True)[:20]
-        txt = f"🔥 %{20}+ DUSUS {len(yeni)} URUN\n\n"
-        for u in yeni:
-            txt += f"%{u['oran']} {u['isim']}\n{u['eski']}TL -> {u['yeni']}TL\n{u['link']}\n\n"
-        await bot.send_message(chat_id=CHAT_ID, text=txt[:4000])
-    else:
-        if len(seen) < 50:
-            await bot.send_message(chat_id=CHAT_ID, text=f"Bot ogreniyor... {len(seen)} urun kaydedildi. 2. calismadan sonra dususleri atacagim.")
-        print(f"Kayitli {len(seen)}, yeni {len(yeni)}")
+def send_telegram(text):
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    requests.post(url, json={"chat_id": CHAT_ID, "text": text})
 
-    save_seen(seen)
+params = {
+  "api_key": RAINFOREST_KEY,
+  "type": "search",
+  "amazon_domain": "amazon.com.tr",
+  "search_term": secilen_kelime,
+  "page": "1"
+}
 
-asyncio.run(main())
+try:
+    r = requests.get("https://api.rainforestapi.com/request", params=params, timeout=30)
+    data = r.json()
+    products = data.get("search_results", [])
+
+    for p in products[:20]:
+        asin = p.get("asin")
+        if not asin: continue
+        title = p.get("title","")[:60]
+        price = p.get("price",{}).get("value")
+        link = p.get("link","")
+        if not price: continue
+
+        if asin not in seen:
+            seen[asin] = {"max": price, "last": price}
+        else:
+            old_max = seen[asin].get("max", price)
+            old_last = seen[asin].get("last", price)
+            if price > old_max:
+                seen[asin]["max"] = price
+            if old_max > 0:
+                dusus = (old_max - price) / old_max * 100
+                if dusus >= 20 and price < old_last:
+                    msg = f"🔥 %{dusus:.0f} DÜŞTÜ - {secilen_kelime}\n{title}\n{old_max}TL -> {price}TL\n{link}"
+                    send_telegram(msg)
+                    time.sleep(1)
+            seen[asin]["last"] = price
+
+    with open("seen.json","w", encoding="utf-8") as f:
+        json.dump(seen, f, ensure_ascii=False, indent=2)
+
+    print(f"Bitti. Toplam: {len(seen)}")
+except Exception as e:
+    print(f"Hata: {e}")

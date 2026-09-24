@@ -1,14 +1,16 @@
-yamlname: Amazon Bot
+yamlname: Amazon Indirim Botu
 on:
   schedule:
     - cron: '*/30 * * * *'
   workflow_dispatch:
+
 jobs:
-  run:
+  bot:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
-        with: {python-version: '3.10'}
-      - run: pip install requests beautifulsoup4 python-telegram-bot
+        with:
+          python-version: '3.10'
+      - run: pip install requests beautifulsoup4 python-telegram-bot==20.7
       - run: python bot.py

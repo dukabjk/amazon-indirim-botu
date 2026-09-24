@@ -3,20 +3,30 @@ on:
   schedule:
     - cron: '*/15 * * * *'
   workflow_dispatch:
+
+permissions:
+  contents: write
+
 jobs:
   run:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
       - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
+          
       - run: pip install requests
+      
       - run: python bot.py
         env:
           RAINFOREST_KEY: ${{ secrets.RAINFOREST_KEY }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
+          
       - run: |
           git config --global user.email "bot@bot.com"
           git config --global user.name "bot"

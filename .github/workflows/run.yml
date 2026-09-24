@@ -1,8 +1,8 @@
-yamlname: Amazon Indirim Botu
+name: Amazon Indirim Botu
 on:
-  schedule:
-    - cron: '*/30 * * * *'
   workflow_dispatch:
+  schedule:
+    - cron: '_/30 _ _ _ *'
 jobs:
   bot:
     runs-on: ubuntu-latest

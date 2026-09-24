@@ -8,88 +8,81 @@ SEEN_FILE = "seen.json"
 
 def load_seen():
     try:
-        with open(SEEN_FILE, "r") as f: return json.load(f)
+        with open(SEEN_FILE,"r") as f: return json.load(f)
     except: return {}
 def save_seen(d):
-    with open(SEEN_FILE, "w") as f: json.dump(d, f)
+    with open(SEEN_FILE,"w") as f: json.dump(d,f)
 
-def arama_yap(kelime):
+def deals_kategori(cat_id):
     url = "https://api.rainforestapi.com/request"
     params = {
         "api_key": RF_KEY,
-        "type": "search",
+        "type": "deals",
         "amazon_domain": "amazon.com.tr",
-        "search_term": kelime,
-        "language": "tr_TR",
-        "sort_by": "deal_rank", # fırsatları öne getir
-        "page": "1"
+        "category_id": cat_id,
+        "language": "tr_TR"
     }
-    try:
-        r = requests.get(url, params=params, timeout=40)
-        return r.json().get("search_results", [])
-    except Exception as e:
-        print(f"{kelime} hata: {e}")
-        return []
+    for deneme in range(2):
+        try:
+            print(f"{cat_id} çekiliyor deneme {deneme+1}")
+            r = requests.get(url, params=params, timeout=90)
+            data = r.json()
+            urunler = data.get("deals_results", []) or data.get("deal_products", []) or []
+            print(f"{cat_id} -> {len(urunler)} ürün")
+            return urunler
+        except Exception as e:
+            print(f"{cat_id} hata: {e}")
+            time.sleep(3)
+    return []
 
 async def main():
     bot = Bot(token=BOT_TOKEN)
     seen = load_seen()
 
-    # GENEL TARAMA İÇİN ANAHTAR KELİMELER
-    kelimeler = ["elektronik", "giyim", "gıda", "kulaklik", "ayakkabi", "mutfak"]
+    kategoriler = {
+        "electronics": "Elektronik",
+        "apparel": "Giyim",
+        "grocery": "Gida",
+        "home": "Ev Yasam",
+        "toys": "Oyuncak"
+    }
+
     tum_urunler = []
+    for cat_id, isim in kategoriler.items():
+        urunler = deals_kategori(cat_id)
+        for p in urunler:
+            oran = p.get("deal_percent_off") or p.get("savings_percent") or p.get("percent_off") or 0
+            try: oran = int(float(str(oran).replace("%","")))
+            except: oran = 0
+            if oran < 20: continue
+            
+            asin = p.get("asin","")
+            if not asin: continue
+            if seen.get(asin) == oran: continue
 
-    for k in kelimeler:
-        urunler = arama_yap(k)
-        print(f"{k} -> {len(urunler)}")
-        for p in urunler[:15]:
-            # Rainforest search'te indirim alanı
-            oran = 0
-            # Bazen list_price vs price farkı
-            try:
-                fiyat = p.get("price",{}).get("value",0)
-                # Eski fiyat için farklı alanlar dene
-                eski = 0
-                if p.get("prices"):
-                    # ilk fiyat current, ikinci eski olabilir
-                    if len(p["prices"]) > 1:
-                        eski = p["prices"][1].get("value",0)
-                if not eski:
-                    eski = p.get("price_strikethrough",{}).get("value",0) or p.get("list_price",{}).get("value",0)
+            tum_urunler.append({
+                "asin": asin,
+                "kat": isim,
+                "isim": p.get("title","")[:65],
+                "oran": oran,
+                "link": p.get("link",""),
+                "fiyat": p.get("deal_price",{}).get("raw","") or p.get("price",{}).get("raw","")
+            })
+        time.sleep(2)
 
-                if p.get("is_deal") or p.get("deal_percent_off"):
-                    oran = p.get("deal_percent_off") or p.get("savings_percent") or 0
-
-                if fiyat and eski and eski > fiyat:
-                    oran = int((eski - fiyat) / eski * 100)
-            except: pass
-
-            if oran >= 20:
-                asin = p.get("asin","")
-                if not asin: continue
-                if seen.get(asin) == oran: continue
-
-                tum_urunler.append({
-                    "asin": asin,
-                    "isim": p.get("title","")[:65],
-                    "oran": oran,
-                    "link": p.get("link",""),
-                    "fiyat": p.get("price",{}).get("raw","")
-                })
-        time.sleep(2) # API'yi yormamak için
-
-    # En iyi 30
     tum_urunler = sorted(tum_urunler, key=lambda x: x["oran"], reverse=True)[:30]
 
     if not tum_urunler:
-        await bot.send_message(chat_id=CHAT_ID, text="Bugün %20+ yeni fırsat yok (hafızadakiler hariç).")
+        # Debug: en azından kaç ürün çektiğimizi at
+        await bot.send_message(chat_id=CHAT_ID, text="Bugün hiç yeni %20+ yok. Hafızayı sıfırlamak için seen.json dosyasını sil.")
         return
 
-    mesaj = f"🔥 GENEL %20+ {len(tum_urunler)} YENİ FIRSAT\n\n"
+    # 30 ürünü 10'arlı 3 mesaja böl
+    header = f"🔥 TÜM KATEGORİLER EN İYİ {len(tum_urunler)} FIRSAT %20+\n\n"
+    cur = header
     parcalar = []
-    cur = mesaj
     for u in tum_urunler:
-        satir = f"%{u['oran']} {u['isim']} {u['fiyat']}\n{u['link']}\n\n"
+        satir = f"[{u['kat']}] %{u['oran']} {u['isim']} {u['fiyat']}\n{u['link']}\n\n"
         if len(cur)+len(satir) > 3800:
             parcalar.append(cur)
             cur = satir
@@ -97,8 +90,8 @@ async def main():
             cur += satir
     parcalar.append(cur)
 
-    for p in parcalar:
-        await bot.send_message(chat_id=CHAT_ID, text=p)
+    for pc in parcalar:
+        await bot.send_message(chat_id=CHAT_ID, text=pc)
         await asyncio.sleep(1)
 
     for u in tum_urunler:

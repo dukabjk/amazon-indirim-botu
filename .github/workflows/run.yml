@@ -1,18 +1,19 @@
-name: Amazon Indirim Botu
+name: Amazon Bot
 on:
-  workflow_dispatch:
   schedule:
     - cron: '*/30 * * * *'
+  workflow_dispatch:
 jobs:
-  bot:
+  run:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-      - run: pip install python-telegram-bot==20.7 requests
-      - env:
+      - run: pip install python-telegram-bot requests playwright
+      - run: playwright install chromium
+      - run: python bot.py
+        env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
-        run: python bot.py

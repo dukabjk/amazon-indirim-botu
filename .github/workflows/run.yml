@@ -2,7 +2,7 @@ name: Amazon Indirim Botu
 on:
   workflow_dispatch:
   schedule:
-    - cron: '_/30 _ _ _ *'
+    - cron: '*/30 * * * *'
 jobs:
   bot:
     runs-on: ubuntu-latest

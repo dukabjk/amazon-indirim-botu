@@ -1,56 +1,78 @@
-import requests, json, os
-from datetime import datetime
+import os, json, requests, urllib.parse
 
-KEY = os.getenv("RAINFOREST_KEY")
 TOKEN = os.getenv("TELEGRAM_TOKEN")
-CHAT = os.getenv("CHAT_ID")
+CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+API_KEY = os.getenv("RAINFOREST_KEY")
 
-words = ["kulaklik","ayakkabi","tshirt","zeytinyagi","kahve","mutfak","telefon kilifi"]
-now = datetime.now()
-i = ((now.hour * 60 + now.minute) // 15) % len(words)
-word = words[i]
-print(f"Kelime: {word}")
+KEYWORDS = ["ayakkabi", "t-shirt", "kulaklik", "mutfak", "kahve", "zeytinyagi"]
 
-try:
-    with open("seen.json","r") as f:
-        seen = json.load(f)
-except:
-    seen = {}
+def get_price():
+    try:
+        with open("seen.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+    except:
+        return {}
 
-def get_price(val):
-    if isinstance(val, dict):
-        return val.get("max", val.get("last", 0))
-    return val
+def save_price(data):
+    with open("seen.json", "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
-params = {"api_key": KEY, "type": "search", "amazon_domain": "amazon.com.tr", "search_term": word}
-r = requests.get("https://api.rainforestapi.com/request", params=params).json()
+def send_telegram(text):
+    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    requests.post(url, json={"chat_id": CHAT_ID, "text": text, "parse_mode": "Markdown", "disable_web_page_preview": False})
 
-for p in r.get("search_results", [])[:20]:
-    asin = p.get("asin")
-    price = p.get("price",{}).get("value")
-    if not asin or not price:
-        continue
+def main():
+    seen = get_price()
+    # Eski sayı formatını düzelt
+    for k, v in list(seen.items()):
+        if isinstance(v, (int, float)):
+            seen[k] = {"max_price": float(v), "title": k, "link": f"https://www.amazon.com.tr/dp/{k}"}
 
-    old_raw = seen.get(asin)
-    old = get_price(old_raw) if old_raw else None
+    keyword = KEYWORDS[0] # Actions her seferinde 1 kelime için tetikleniyor, cron ile dönüyor
+    # kelime seçimi main.yml'den gelmiyor ise random
+    import random, datetime
+    keyword = random.choice(KEYWORDS)
 
-    if old is None:
-        seen[asin] = price
-    else:
-        if old > 0 and (old - price) / old >= 0.2:
-            txt = f"INDIRIM {word} {old} -> {price}\n{p.get('link')}"
-            requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", json={"chat_id": CHAT, "text": txt})
-        # her zaman en düşük fiyatı güncelle, en yükseği sakla mantığı için düz sayıya çevir
-        seen[asin] = max(old, price) if price > old else min(old, price)
-        # düşüş için aslında en yüksek fiyatı tutmamız lazım, sade olsun diye max tutuyoruz
-        if price > old:
-            seen[asin] = price
+    params = {
+        "api_key": API_KEY,
+        "type": "search",
+        "amazon_domain": "amazon.com.tr",
+        "search_term": keyword,
+        "sort_by": "price_low_to_high"
+    }
+
+    r = requests.get("https://api.rainforestapi.com/request", params=params, timeout=30)
+    data = r.json()
+    products = data.get("search_results", [])[:10]
+
+    for p in products:
+        asin = p.get("asin")
+        price = p.get("price", {}).get("value")
+        title = p.get("title", "")[:80]
+        link = p.get("link", "")
+
+        if not asin or not price:
+            continue
+
+        old_data = seen.get(asin)
+        old_max = old_data["max_price"] if old_data else 0
+
+        if old_max == 0:
+            seen[asin] = {"max_price": price, "title": title, "link": link}
         else:
-            # indirim varsa en yüksekte kalsın ki bir daha atmasın
-            pass
-            # seen[asin] = old
+            if old_max > 0 and (old_max - price) / old_max >= 0.2:
+                discount = int((old_max - price) / old_max * 100)
+                msg = f"🔥 %{discount} İNDİRİM!\n\n{title}\n\n💰 {old_max} TL -> {price} TL\n\n🔗 {link}"
+                send_telegram(msg)
+                seen[asin]["max_price"] = price # yeni düşük fiyatı kaydet
+            else:
+                # fiyat arttıysa max'ı güncelle
+                if price > old_max:
+                    seen[asin]["max_price"] = price
 
-with open("seen.json","w") as f:
-    json.dump(seen, f)
+    save_price(seen)
+    print(f"Kelime: {keyword}")
+    print("ok")
 
-print("ok")
+if __name__ == "__main__":
+    main()

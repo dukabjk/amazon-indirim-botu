@@ -1,77 +1,100 @@
-import os, json, requests, urllib.parse
+import os, json, time, random, re
+import requests
+from bs4 import BeautifulSoup
 
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-API_KEY = os.getenv("RAINFOREST_KEY")
 
 KEYWORDS = ["ayakkabi", "t-shirt", "kulaklik", "mutfak", "kahve", "zeytinyagi"]
 
-def get_price():
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "Accept-Language": "tr-TR,tr;q=0.9",
+}
+
+def load_seen():
     try:
         with open("seen.json", "r", encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
+            # eski sayı formatını düzelt
+            for k,v in list(data.items()):
+                if isinstance(v, (int,float)):
+                    data[k] = {"max_price": float(v), "title": k, "link": f"https://www.amazon.com.tr/dp/{k}"}
+            return data
     except:
         return {}
 
-def save_price(data):
+def save_seen(d):
     with open("seen.json", "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+        json.dump(d, f, ensure_ascii=False, indent=2)
 
 def send_telegram(text):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    requests.post(url, json={"chat_id": CHAT_ID, "text": text, "parse_mode": "Markdown", "disable_web_page_preview": False})
+    requests.post(url, json={"chat_id": CHAT_ID, "text": text, "parse_mode": "Markdown"})
 
-def main():
-    seen = get_price()
-    # Eski sayı formatını düzelt
-    for k, v in list(seen.items()):
-        if isinstance(v, (int, float)):
-            seen[k] = {"max_price": float(v), "title": k, "link": f"https://www.amazon.com.tr/dp/{k}"}
+def parse_price(text):
+    # "1.479,00 TL" -> 1479.0
+    if not text: return None
+    text = text.replace(".", "").replace(",", ".")
+    m = re.search(r"(\d+[\.\d]*\d*)", text)
+    if m:
+        try: return float(m.group(1))
+        except: return None
+    return None
 
-    keyword = KEYWORDS[0] # Actions her seferinde 1 kelime için tetikleniyor, cron ile dönüyor
-    # kelime seçimi main.yml'den gelmiyor ise random
-    import random, datetime
-    keyword = random.choice(KEYWORDS)
+def scrape_keyword(keyword, seen):
+    url = f"https://www.amazon.com.tr/s?k={keyword}"
+    print(f"Araniyor: {keyword} - {url}")
+    r = requests.get(url, headers=HEADERS, timeout=20)
 
-    params = {
-        "api_key": API_KEY,
-        "type": "search",
-        "amazon_domain": "amazon.com.tr",
-        "search_term": keyword,
-        "sort_by": "price_low_to_high"
-    }
+    if r.status_code!= 200:
+        print(f"Amazon engelledi: {r.status_code}")
+        return
 
-    r = requests.get("https://api.rainforestapi.com/request", params=params, timeout=30)
-    data = r.json()
-    products = data.get("search_results", [])[:10]
+    soup = BeautifulSoup(r.text, "html.parser")
+    items = soup.select("div[data-asin]")
 
-    for p in products:
-        asin = p.get("asin")
-        price = p.get("price", {}).get("value")
-        title = p.get("title", "")[:80]
-        link = p.get("link", "")
+    count = 0
+    for item in items:
+        asin = item.get("data-asin")
+        if not asin or len(asin)!= 10: continue
 
-        if not asin or not price:
-            continue
+        title_el = item.select_one("h2 span")
+        price_el = item.select_one("span.a-price-whole, span.a-offscreen")
+        link_el = item.select_one("a.a-link-normal")
 
-        old_data = seen.get(asin)
-        old_max = old_data["max_price"] if old_data else 0
+        if not title_el or not price_el: continue
+
+        title = title_el.get_text(strip=True)[:80]
+        price = parse_price(price_el.get_text())
+        link = "https://www.amazon.com.tr" + link_el.get("href").split("?")[0] if link_el else f"https://www.amazon.com.tr/dp/{asin}"
+
+        if not price or price < 50: continue # saçma fiyatları atla
+
+        old = seen.get(asin)
+        old_max = old["max_price"] if old else 0
 
         if old_max == 0:
             seen[asin] = {"max_price": price, "title": title, "link": link}
         else:
             if old_max > 0 and (old_max - price) / old_max >= 0.2:
-                discount = int((old_max - price) / old_max * 100)
-                msg = f"🔥 %{discount} İNDİRİM!\n\n{title}\n\n💰 {old_max} TL -> {price} TL\n\n🔗 {link}"
+                disc = int((old_max - price) / old_max * 100)
+                msg = f"🔥 %{disc} İNDİRİM! ({keyword})\n\n{title}\n\n💰 {old_max} TL -> {price} TL\n\n🔗 {link}"
                 send_telegram(msg)
-                seen[asin]["max_price"] = price # yeni düşük fiyatı kaydet
-            else:
-                # fiyat arttıysa max'ı güncelle
-                if price > old_max:
-                    seen[asin]["max_price"] = price
+                seen[asin]["max_price"] = price
+            elif price > old_max:
+                seen[asin]["max_price"] = price
 
-    save_price(seen)
-    print(f"Kelime: {keyword}")
+        count += 1
+        if count >= 10: break # her kelimede 10 ürün yeter
+
+    print(f"{keyword} -> {count} ürün işlendi")
+
+def main():
+    seen = load_seen()
+    keyword = random.choice(KEYWORDS)
+    scrape_keyword(keyword, seen)
+    save_seen(seen)
     print("ok")
 
 if __name__ == "__main__":

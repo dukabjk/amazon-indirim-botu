@@ -1,1 +1,52 @@
-{}
+{
+  "B0F2G3Z8R4": {
+    "max_price": 2403.89,
+    "title": "adidas",
+    "link": "https://www.amazon.com.tr/dp/B0F2G3Z8R4"
+  },
+  "B0F2G66FV5": {
+    "max_price": 3216.0,
+    "title": "adidas",
+    "link": "https://www.amazon.com.tr/dp/B0F2G66FV5"
+  },
+  "B0CJSSYFWV": {
+    "max_price": 1333.0,
+    "title": "Under Armour",
+    "link": "https://www.amazon.com.tr/dp/B0CJSSYFWV"
+  },
+  "B0CKLL2MB7": {
+    "max_price": 2905.1,
+    "title": "Under Armour",
+    "link": "https://www.amazon.com.tr/dp/B0CKLL2MB7"
+  },
+  "B0F2GT1JDL": {
+    "max_price": 2962.0,
+    "title": "adidas",
+    "link": "https://www.amazon.com.tr/dp/B0F2GT1JDL"
+  },
+  "B0DL737RRX": {
+    "max_price": 2789.0,
+    "title": "adidas",
+    "link": "https://www.amazon.com.tr/dp/B0DL737RRX"
+  },
+  "B0BZXS1CWL": {
+    "max_price": 1986.02,
+    "title": "Under Armour",
+    "link": "https://www.amazon.com.tr/dp/B0BZXS1CWL"
+  },
+  "B0CKXQX9XN": {
+    "max_price": 1923.63,
+    "title": "adidas",
+    "link": "https://www.amazon.com.tr/dp/B0CKXQX9XN"
+  },
+  "B0G73FJ1X3": {
+    "max_price": 1756.47,
+    "title": "adidas",
+    "link": "https://www.amazon.com.tr/dp/B0G73FJ1X3"
+  },
+  "B0F1X46RL3": {
+    "max_price": 1520.0,
+    "title": "adidas",
+    "link": "https://www.amazon.com.tr/dp/B0F1X46RL3"
+  }
+}

@@ -155,7 +155,7 @@
     "link": "https://www.amazon.com.tr/dp/B0H8DNWV9Y"
   },
   "B0DT1JTPGQ": {
-    "max_price": 3325.71,
+    "max_price": 3375.77,
     "title": "Calvin Klein",
     "link": "https://www.amazon.com.tr/dp/B0DT1JTPGQ"
   },
@@ -325,7 +325,7 @@
     "link": "https://www.amazon.com.tr/dp/B0FRB8FNZY"
   },
   "B0DT22KY8V": {
-    "max_price": 1835.28,
+    "max_price": 1881.17,
     "title": "Tommy Jeans",
     "link": "https://www.amazon.com.tr/dp/B0DT22KY8V"
   },
@@ -348,5 +348,50 @@
     "max_price": 2986.82,
     "title": "Calvin Klein",
     "link": "https://www.amazon.com.tr/dp/B0G2T4XGJ5"
+  },
+  "B0FZVLGGG3": {
+    "max_price": 269.9,
+    "title": "Kadın Siyah Vintage Baget El Omuz Çanta",
+    "link": "https://www.amazon.com.tr/dp/B0FZVLGGG3"
+  },
+  "B0FD5ZCDCZ": {
+    "max_price": 4990.0,
+    "title": "GUESS",
+    "link": "https://www.amazon.com.tr/dp/B0FD5ZCDCZ"
+  },
+  "B0FBX3QRVL": {
+    "max_price": 2171.85,
+    "title": "Tommy Hilfiger",
+    "link": "https://www.amazon.com.tr/dp/B0FBX3QRVL"
+  },
+  "B0FZL7MLJF": {
+    "max_price": 549.9,
+    "title": "Kadın Suni Deri Ayarlanabilir Omuz Askılı Ayıcıklı Omuz El ve Sırt çantası Olabilen Omuz Ç",
+    "link": "https://www.amazon.com.tr/dp/B0FZL7MLJF"
+  },
+  "B0GVT76WL5": {
+    "max_price": 299.9,
+    "title": "Kadın Siyah Vintage Baget El Omuz Çanta",
+    "link": "https://www.amazon.com.tr/dp/B0GVT76WL5"
+  },
+  "B0CYNDT1ZS": {
+    "max_price": 1649.0,
+    "title": "Cappadocia Vintage",
+    "link": "https://www.amazon.com.tr/dp/B0CYNDT1ZS"
+  },
+  "B0FMXW2YS2": {
+    "max_price": 2799.0,
+    "title": "Samsonite",
+    "link": "https://www.amazon.com.tr/dp/B0FMXW2YS2"
+  },
+  "B0D314Z2G9": {
+    "max_price": 1199.0,
+    "title": "PUMA PUMA PHASE Backpack Klasik sırt çantaları Unisex Yetişkin",
+    "link": "https://www.amazon.com.tr/dp/B0D314Z2G9"
+  },
+  "B0FVYDRBKX": {
+    "max_price": 4599.0,
+    "title": "Tommy Jeans",
+    "link": "https://www.amazon.com.tr/dp/B0FVYDRBKX"
   }
 }

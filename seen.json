@@ -245,7 +245,7 @@
     "link": "https://www.amazon.com.tr/dp/B0FDGXRT8T"
   },
   "B07XJ42T8Z": {
-    "max_price": 599.0,
+    "max_price": 637.4,
     "title": "Lenovo",
     "link": "https://www.amazon.com.tr/dp/B07XJ42T8Z"
   },
@@ -298,5 +298,55 @@
     "max_price": 1790.0,
     "title": "STANLEY Quencher H2.0 FlowState Pipetli Termos Bardak 1.18 Litre - Krem | Paslanmaz Çelik",
     "link": "https://www.amazon.com.tr/dp/B0CNTV815Y"
+  },
+  "B0BNZBDSG7": {
+    "max_price": 773.91,
+    "title": "Exception 13 inç & 14 inç Dikey Postacı Çantası",
+    "link": "https://www.amazon.com.tr/dp/B0BNZBDSG7"
+  },
+  "B0FRCHM5VJ": {
+    "max_price": 2476.5,
+    "title": "Tommy Hilfiger",
+    "link": "https://www.amazon.com.tr/dp/B0FRCHM5VJ"
+  },
+  "B0F4NXKJVS": {
+    "max_price": 3149.5,
+    "title": "Calvin Klein",
+    "link": "https://www.amazon.com.tr/dp/B0F4NXKJVS"
+  },
+  "B0FVYD1V7Z": {
+    "max_price": 3995.0,
+    "title": "Tommy Jeans",
+    "link": "https://www.amazon.com.tr/dp/B0FVYD1V7Z"
+  },
+  "B0FRB8FNZY": {
+    "max_price": 4409.3,
+    "title": "Calvin Klein",
+    "link": "https://www.amazon.com.tr/dp/B0FRB8FNZY"
+  },
+  "B0DT22KY8V": {
+    "max_price": 1835.28,
+    "title": "Tommy Jeans",
+    "link": "https://www.amazon.com.tr/dp/B0DT22KY8V"
+  },
+  "B0FMY26BSN": {
+    "max_price": 1929.0,
+    "title": "American Tourister",
+    "link": "https://www.amazon.com.tr/dp/B0FMY26BSN"
+  },
+  "B0BLCM8CBJ": {
+    "max_price": 2400.32,
+    "title": "Tommy Jeans",
+    "link": "https://www.amazon.com.tr/dp/B0BLCM8CBJ"
+  },
+  "B0FDGYQC6L": {
+    "max_price": 3243.2,
+    "title": "Calvin Klein",
+    "link": "https://www.amazon.com.tr/dp/B0FDGYQC6L"
+  },
+  "B0G2T4XGJ5": {
+    "max_price": 2986.82,
+    "title": "Calvin Klein",
+    "link": "https://www.amazon.com.tr/dp/B0G2T4XGJ5"
   }
 }

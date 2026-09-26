@@ -100,7 +100,7 @@
     "link": "https://www.amazon.com.tr/dp/B0CNHCBH4Q"
   },
   "B08TNJXCJK": {
-    "max_price": 1722.28,
+    "max_price": 1899.95,
     "title": "Komili Sızma Zeytinyağı 5 Lt Teneke",
     "link": "https://www.amazon.com.tr/dp/B08TNJXCJK"
   },
@@ -115,7 +115,7 @@
     "link": "https://www.amazon.com.tr/dp/B071HT569F"
   },
   "B08TNJNW5M": {
-    "max_price": 1409.0,
+    "max_price": 1443.77,
     "title": "Komili Riviera Zeytinyağı Teneke 5 Lt",
     "link": "https://www.amazon.com.tr/dp/B08TNJNW5M"
   },
@@ -130,7 +130,7 @@
     "link": "https://www.amazon.com.tr/dp/B0BNVS49WY"
   },
   "B0F8HFRDSW": {
-    "max_price": 2073.85,
+    "max_price": 2083.45,
     "title": "KOMİLİ AYVALIK ERKEN HASAT ZEYTİNYAĞI – 5 LT",
     "link": "https://www.amazon.com.tr/dp/B0F8HFRDSW"
   },
@@ -393,5 +393,55 @@
     "max_price": 4599.0,
     "title": "Tommy Jeans",
     "link": "https://www.amazon.com.tr/dp/B0FVYDRBKX"
+  },
+  "B000OYTANU": {
+    "max_price": 2115.0,
+    "title": "Tariş Zeytinyağı Güney Ege Naturel Sızma 5 lt",
+    "link": "https://www.amazon.com.tr/dp/B000OYTANU"
+  },
+  "B005OKASNK": {
+    "max_price": 1246.5,
+    "title": "Kristal Riviera Zeytinyağı 5 L",
+    "link": "https://www.amazon.com.tr/dp/B005OKASNK"
+  },
+  "B0999P9FK3": {
+    "max_price": 1175.0,
+    "title": "KOMİLİ SIZMA MEYVEMSİ ZEYTİNYAĞI 3 LT TENEKE",
+    "link": "https://www.amazon.com.tr/dp/B0999P9FK3"
+  },
+  "B07TTBCGZT": {
+    "max_price": 1124.99,
+    "title": "Tariş Kuzey Ege Natürel Sızma Zeytinyağı 2 lt",
+    "link": "https://www.amazon.com.tr/dp/B07TTBCGZT"
+  },
+  "B09Y1T5NZD": {
+    "max_price": 700.0,
+    "title": "Villa TURQAN 1 Lt Erken Hasat Soğuk Sıkım Memecik Natürel Sızma Zeytinyağı | Tek Bahçe (20",
+    "link": "https://www.amazon.com.tr/dp/B09Y1T5NZD"
+  },
+  "B00MNMTFQS": {
+    "max_price": 458.32,
+    "title": "Komili Sızma Zeytinyağı Pet Şişe 1 Lt",
+    "link": "https://www.amazon.com.tr/dp/B00MNMTFQS"
+  },
+  "B0D6NGGJR9": {
+    "max_price": 464.27,
+    "title": "KOMİLİ BANMALIK SOĞUK SIKIM NATÜREL SIZMA ZEYTİNYAĞI 1 LT PET",
+    "link": "https://www.amazon.com.tr/dp/B0D6NGGJR9"
+  },
+  "B08R9YQ6NJ": {
+    "max_price": 413.95,
+    "title": "Yudum Egemden Yoğun Lezzet 1 lt Sızma Zeytinyağı Pet",
+    "link": "https://www.amazon.com.tr/dp/B08R9YQ6NJ"
+  },
+  "B08NTZMWZ6": {
+    "max_price": 1882.41,
+    "title": "Kırlangıç Natural Sızma Zeytinyağı 5 lt Teneke",
+    "link": "https://www.amazon.com.tr/dp/B08NTZMWZ6"
+  },
+  "B0F4XBTBCV": {
+    "max_price": 1050.0,
+    "title": "Villa TURQAN 2 Lt Olgun Hasat Soğuk Sıkım Memecik Natürel Sızma Zeytinyağı | Tek Bahçe (20",
+    "link": "https://www.amazon.com.tr/dp/B0F4XBTBCV"
   }
 }
